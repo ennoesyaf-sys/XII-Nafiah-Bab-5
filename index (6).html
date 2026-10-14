@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}</style>
+<title>Evaluation 5 Environment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
+<style>
+/* Layout: one slide card at a time, sticky top bar (score) and bottom bar (prev/next). Palette from the book: green for environment, orange for the unit number tile. */
+:root{
+  --bg:#f1f5f0; --surface:#ffffff; --fg:#16261e; --muted:#55655c; --line:#d3ddd6;
+  --accent:#1d6b49; --accent-fg:#ffffff; --accent-soft:#dcefe4;
+  --warm:#d9701f; --warm-fg:#ffffff; --warm-soft:#fbe8d6;
+  --ok:#15803d; --ok-soft:#d9f1e1; --bad:#b3261e; --bad-soft:#fbe0dd; --part:#9a5b00; --part-soft:#fdecc8;
+  --font-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --font-body:'Atkinson Hyperlegible','Segoe UI',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1913; --surface:#16231c; --fg:#e8f0ea; --muted:#9db0a4; --line:#2a3b31;
+  --accent:#5cc794; --accent-fg:#0a1a11; --accent-soft:#1d3a2c;
+  --warm:#f0a064; --warm-fg:#2b1604; --warm-soft:#3a2a1b;
+  --ok:#62d58c; --ok-soft:#173824; --bad:#ff8f86; --bad-soft:#3d1d1a; --part:#f2c265; --part-soft:#3a2f12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1913; --surface:#16231c; --fg:#e8f0ea; --muted:#9db0a4; --line:#2a3b31;
+  --accent:#5cc794; --accent-fg:#0a1a11; --accent-soft:#1d3a2c;
+  --warm:#f0a064; --warm-fg:#2b1604; --warm-soft:#3a2a1b;
+  --ok:#62d58c; --ok-soft:#173824; --bad:#ff8f86; --bad-soft:#3d1d1a; --part:#f2c265; --part-soft:#3a2f12; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:17px;line-height:1.55;min-height:100%}
+button,select,input,textarea{font:inherit;color:inherit}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.top-in{max-width:880px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-family:var(--font-display);font-weight:800;font-size:1rem;display:flex;align-items:center;gap:8px;min-width:0}
+.brand b{background:var(--warm);color:var(--warm-fg);padding:1px 9px;border-radius:3px}
+.brand span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.score{font-variant-numeric:tabular-nums;font-weight:700;background:var(--accent-soft);color:var(--accent);padding:4px 12px;border-radius:999px;white-space:nowrap}
+.bar{height:4px;background:var(--line)}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .25s}
+main{flex:1;width:100%;max-width:880px;margin:0 auto;padding:20px 16px 28px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:clamp(18px,4vw,32px)}
+.tag{display:inline-block;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px}
+h1,h2{font-family:var(--font-display);line-height:1.15;text-wrap:balance;margin:0}
+h2{font-size:clamp(1.3rem,3.4vw,1.7rem);font-weight:800}
+.qhead{display:flex;gap:14px;align-items:flex-start}
+.qn{flex:none;min-width:48px;height:48px;padding:0 8px;display:grid;place-items:center;background:var(--accent);color:var(--accent-fg);font-family:var(--font-display);font-weight:800;font-size:1.25rem;border-radius:6px}
+.qhead>div{min-width:0}
+.meta{color:var(--muted);font-size:.95rem;margin:4px 0 0}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 4px}
+.btn{border:1.5px solid var(--accent);background:transparent;color:var(--accent);padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;min-height:42px}
+.btn:hover{background:var(--accent-soft)}
+.btn.solid{background:var(--accent);color:var(--accent-fg)}
+.btn.solid:hover{filter:brightness(1.08)}
+.btn.warm{border-color:var(--warm);color:var(--warm)}
+.btn.warm:hover{background:var(--warm-soft)}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+:focus-visible{outline:3px solid var(--warm);outline-offset:2px}
+.hint{margin:12px 0 0;padding:12px 14px;background:var(--warm-soft);border-radius:8px;color:var(--fg)}
+.hint b{color:var(--warm)}
+.opts{display:grid;gap:10px;margin:18px 0 0}
+.opt{display:flex;align-items:flex-start;gap:12px;text-align:left;width:100%;padding:12px 14px;background:var(--surface);border:1.5px solid var(--line);border-radius:8px;cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt .ltr{flex:none;width:30px;height:30px;display:grid;place-items:center;border:1.5px solid var(--line);border-radius:50%;font-weight:700;font-size:.9rem}
+.opt .txt{flex:1;min-width:0;padding-top:2px}
+.opt .mk{flex:none;font-weight:700;font-size:.85rem;padding-top:3px}
+.opt.on{border-color:var(--accent);background:var(--accent-soft)}
+.opt.on .ltr{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.opt:disabled{cursor:default;color:var(--fg)}
+.opt.ok{border-color:var(--ok);background:var(--ok-soft)}.opt.ok .ltr{background:var(--ok);color:var(--surface);border-color:var(--ok)}.opt.ok .mk{color:var(--ok)}
+.opt.bad{border-color:var(--bad);background:var(--bad-soft)}.opt.bad .ltr{background:var(--bad);color:var(--surface);border-color:var(--bad)}.opt.bad .mk{color:var(--bad)}
+.opt.miss{border-color:var(--ok);border-style:dashed}.opt.miss .mk{color:var(--ok)}
+.rows{display:grid;gap:10px;margin-top:18px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 14px;border:1.5px solid var(--line);border-radius:8px}
+.row .st{flex:1 1 280px;min-width:0}
+.row.ok{border-color:var(--ok);background:var(--ok-soft)}.row.bad{border-color:var(--bad);background:var(--bad-soft)}
+.seg{display:flex;gap:6px}
+.seg button{padding:6px 16px;border:1.5px solid var(--line);background:var(--surface);border-radius:6px;font-weight:700;cursor:pointer;min-height:40px}
+.seg button.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.seg button.right{background:var(--ok);color:var(--surface);border-color:var(--ok)}
+.seg button.wrong{background:var(--bad);color:var(--surface);border-color:var(--bad)}
+.seg button:disabled{cursor:default}
+.why{flex:1 1 100%;font-size:.95rem;color:var(--muted)}
+.match{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:20px;margin-top:18px;align-items:start}
+@media (max-width:700px){.match{grid-template-columns:1fr}}
+.mrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.mrow .w{flex:1 1 130px;font-weight:700}
+.mrow select{min-width:76px;padding:7px 8px;border:1.5px solid var(--line);border-radius:6px;background:var(--surface);min-height:40px}
+.mrow.ok select{border-color:var(--ok);background:var(--ok-soft)}.mrow.bad select{border-color:var(--bad);background:var(--bad-soft)}
+.mrow .res{font-weight:700;font-size:.9rem}
+.mrow.ok .res{color:var(--ok)}.mrow.bad .res{color:var(--bad)}
+.choices{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.choices li{display:flex;gap:10px;padding:10px 12px;background:var(--bg);border-radius:8px}
+.choices b{flex:none;color:var(--accent)}
+.fills{display:grid;gap:14px;margin-top:18px}
+.fi{padding:12px 14px;border:1.5px solid var(--line);border-radius:8px}
+.fi .ln{line-height:2.3}
+.fi .lead{color:var(--muted);line-height:1.6}
+.fi.ok{border-color:var(--ok);background:var(--ok-soft)}.fi.bad{border-color:var(--bad);background:var(--bad-soft)}
+.fi .no{font-weight:800;color:var(--accent);margin-right:6px}
+input.blank{width:9.5em;max-width:100%;padding:4px 8px;border:0;border-bottom:2px solid var(--accent);background:var(--accent-soft);border-radius:4px 4px 0 0;text-align:center;min-height:36px}
+input.blank:disabled{color:var(--fg)}
+.ans{margin-top:6px;font-size:.95rem;color:var(--muted)}
+.fi.bad .ans b,.fi.ok .ans b{color:var(--fg)}
+textarea{display:block;width:100%;min-height:130px;margin-top:18px;padding:12px 14px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);resize:vertical}
+textarea:focus{border-color:var(--accent)}
+.fb{margin-top:18px;padding:12px 16px;border-radius:8px;font-weight:700}
+.fb.ok{background:var(--ok-soft);color:var(--ok)}.fb.bad{background:var(--bad-soft);color:var(--bad)}.fb.part{background:var(--part-soft);color:var(--part)}
+.key{margin-top:12px;padding:14px 16px;border:1.5px solid var(--line);border-left:5px solid var(--accent);border-radius:8px}
+.key h3{margin:0 0 4px;font-family:var(--font-display);font-size:1rem}
+.key p{margin:6px 0}
+.self{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.text h2{margin-bottom:14px}
+.text p{margin:0 0 14px;max-width:68ch}
+.text .src{color:var(--muted);font-size:.9rem}
+.dl{display:grid;gap:8px;max-width:68ch}
+.dl div{display:grid;grid-template-columns:64px 1fr;gap:10px}
+.dl b{color:var(--accent)}
+.cover{padding-block:clamp(28px,7vw,64px)}
+.cover .big{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.cover h1{font-size:clamp(2.4rem,9vw,4.4rem);font-weight:800;color:var(--accent)}
+.cover .five{background:var(--warm);color:var(--warm-fg);font-family:var(--font-display);font-weight:800;font-size:clamp(2.4rem,9vw,4.4rem);line-height:1;padding:4px 20px;border-radius:6px}
+.cover p{margin:16px 0 0;max-width:52ch}
+.facts{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0}
+.facts span{background:var(--accent-soft);color:var(--accent);padding:6px 14px;border-radius:999px;font-weight:700}
+.big-score{font-family:var(--font-display);font-weight:800;font-size:clamp(2.6rem,10vw,4.4rem);color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.1}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
+.pill{min-width:48px;padding:8px 10px;border-radius:6px;border:1.5px solid var(--line);background:var(--surface);font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums}
+.pill.ok{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.pill.part{background:var(--part-soft);border-color:var(--part);color:var(--part)}
+.pill.bad{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;color:var(--muted);font-size:.9rem}
+.foot{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.foot-in{max-width:880px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.count{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:700}
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.5);display:flex;justify-content:center;align-items:flex-end;padding-top:env(safe-area-inset-top,0px)}
+.sheet-in{background:var(--surface);width:100%;max-width:760px;max-height:88%;overflow:auto;border-radius:14px 14px 0 0;padding:20px 20px calc(24px + env(safe-area-inset-bottom,0px))}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.who{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:22px 0 8px;max-width:560px}
+.who label{display:grid;gap:4px;font-weight:700;font-size:.9rem}
+.who input{padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);font-weight:400;min-height:44px}
+.who input:focus{border-color:var(--accent)}
+.gate{color:var(--bad);font-weight:700;margin:6px 0 0}
+.sub{margin-top:16px;padding:14px 16px;border:1.5px solid var(--line);border-radius:8px}
+.sub p{margin:0 0 10px}
+.sub.ok{border-color:var(--ok);background:var(--ok-soft)}.sub.err{border-color:var(--bad);background:var(--bad-soft)}
+.tbl{overflow-x:auto;margin-top:12px}
+.tbl table{border-collapse:collapse;width:100%;min-width:480px;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+.tbl th{font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tbl td.n{text-align:right;font-weight:700}
+.btn.sm{padding:4px 12px;min-height:34px;font-size:.9rem}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="top-in">
+      <div class="brand"><b>5</b><span>Evaluation · Environment</span></div>
+      <div style="display:flex;gap:8px;align-items:center"><div class="score" id="score" aria-live="polite">0 / 0</div></div>
+    </div>
+    <div class="bar"><i id="prog" style="width:0%"></i></div>
+  </header>
+  <main id="main" tabindex="-1"></main>
+  <footer class="foot">
+    <div class="foot-in">
+      <button class="btn" id="prev" data-act="prev">← Back</button>
+      <span class="count" id="count"></span>
+      <button class="btn solid" id="next" data-act="next">Next →</button>
+    </div>
+  </footer>
+</div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Text" hidden>
+  <div class="sheet-in" id="sheet-in"></div>
+</div>
+
+<script>
+/* ---------- Texts ---------- */
+const TEXTS = {
+  t1: { title: "Pesticides", paras: [
+    "In today's fast-moving and densely populated world, there is a high demand for affordable, quality food in large quantities. To meet this growing global demand, agriculture often relies on pesticides, which remain a controversial topic. While pesticides are effective for pest control in the short term, they may pose serious risks to human health and the environment over time. Whether you're involved in agricultural decision-making or are a consumer, it's important to consider both the advantages and disadvantages of pesticide use.",
+    "Pesticides are chemicals or mixtures used to control pests or manage plant growth. They offer both direct and indirect benefits. According to Cooper and Hans, the main (or primary) benefits include better quality of crops and animals and increased agricultural yields. The secondary benefits, which are longer-term, include enhanced food security, higher export income, and decreased global spread of disease. Pesticides also help prevent waste of essential resources like crops, water, land, and time. Economically, spending about 160 trillion rupiah on pesticides annually is estimated to protect over 600 trillion rupiah worth of crops.",
+    "However, there are serious downsides to the widespread use of pesticides. These include poisoning or death of livestock, destruction of natural pest predators, pesticide-resistant pests, reduced bee populations (which affects pollination), harm to nearby crops, and damage to wildlife such as birds and fish. Pesticides also pollute groundwater and harm soil fertility by killing beneficial microorganisms. Some can negatively impact the human immune system, causing allergies, inflammation, autoimmune disorders, and a higher risk of cancer—especially among children and agricultural workers who are regularly exposed. Thousands of non-fatal poisonings and cancer cases every year are linked to pesticide exposure.",
+    "In conclusion, there are valid points on both sides of the pesticide debate. While they help boost agricultural production and reduce costs, pesticides also pose serious long-term threats to health and nature. Experts like Arias-Estevez and colleagues suggest that pesticides should be designed to be minimally toxic, affecting only the intended pests. New technologies such as biologically-based pesticides and targeted spraying methods may help reduce harmful effects. Even though pesticides play a significant role in increasing food supply and saving money, the potential dangers they pose cannot be ignored."
+  ], src: "Adapted from EduBirdie (n.d.), hub.edubirdie.com/examples/the-advantages-and-disadvantages-of-pesticides-essay/" },
+  t2: { title: "John and Willy", intro: "John and Willy, two friends, are talking about the environment.", dialog: [
+    ["John","Hey, Willy, how are you?"],
+    ["Willy","I'm fine John, what about you?"],
+    ["John","I am doing great. Have you read the journal in our school about the environment?"],
+    ["Willy","Yes, I read it, but missed some parts. Have you read the whole thing?"],
+    ["John","Yes, I have. It seems we are polluting our environment too much."],
+    ["Willy","Yeah, I think so. We should care for it more. Can you tell how we can be careful about the environment?"],
+    ["John","I think we need to be careful about air and water mostly. Not too long from now, we will face a shortage of drinking water. Therefore, we need to stop wasting and polluting the water."],
+    ["Willy","Yeah, that's also true for air pollution. Have you seen the data on global warming?"],
+    ["John","Yes, global warming is true, and some people don't even believe it. We need to be careful and stop polluting the environment. Otherwise, maybe the earth will not be the same after 50 or 100 years. We have already spoiled many things."],
+    ["Willy","I agree with you. There are many animal species that have become extinct just because of massive changes in the climate. And global warming and air pollution are directly responsible for much of that."],
+    ["John","What do you think we should do to save nature and the environment?"],
+    ["Willy","First of all, we need to go green and stop using plastic materials. It's a huge threat to sea life, and it kills the fertility of the land."],
+    ["John","What do you suggest to improve the air?"],
+    ["Willy","We need to reduce the use of things that produce carbon dioxide. We have to use electric vehicles that use renewable energy. Overall, it's tough, but it's possible to do."],
+    ["John","I agree with you. It was great talking to you."],
+    ["Willy","Yeah, it was. See you later and take care."],
+    ["John","You too."]
+  ], src: "Adapted from Linguapress (2020), linguapress.com/intermediate/polluting-for-pleasure.htm" },
+  t3: { title: "Cars: Advantages and Disadvantages", paras: [
+    "Do you drive a car? Did you know, that the first car was invented by a German inventor in 1886, but only began to be widely used at the beginning of the 20th century? Many modern people, especially workers, use cars to go places quickly and comfortably. However, owning a car also has some downsides, like the high purchase prices. In addition, instead of getting to their destination quickly, driving a car can make them very late if they get stuck in traffic. Moreover, car accidents are a social problem that has become more frequent recently. So, is driving a private car more profitable or not? Here are some of the advantages and disadvantages of cars.",
+    "The first reason people drive a car is because of its comfort. For people who have private cars, they can use their time more efficiently and are not in a rush. They can use their time more flexibly. Meanwhile, people who use public transportation are stuck with the existing public transportation schedule and have to meet their needs around it. Not only that, they also need to spend time to reach the train station or bus stop. Thus, they are more likely to experience stress from travel than those who drive private cars. Crowded and noisy public transportation is also less friendly to the elderly. Generally, elderly people cannot walk long distances or ride bicycles anymore, therefore, many elderly choose to drive comfortable private cars than use public transportation.",
+    "Although the convenience offered by private cars cannot be denied, cars have far more disadvantages. The biggest thing is, that cars are one of the causes of environmental pollution. In today's modern era, almost every household has a car, at least one. If added up, billions of cars cross the roads every second. Meanwhile, the majority of cars currently still use gasoline, which the combustion produces dangerous pollutants. These substances destroy ozone, which is supposed to protect us from sunlight. Cars may be beneficial for our daily lives, but they are very detrimental to the Earth. If we continue driving cars and the air gets more polluted, people are more likely to become infected with various diseases. They can develop skin cancer, asthma, heart disease, birth defects, and eye irritation.",
+    "In conclusion, driving cars provides convenience to people in their fast mobility. However, long-term use of cars has negative impacts on the environment. People must start to take part in the efforts to protect the earth, like by choosing to use public transportation even if they have a private car. Public transportation can carry many passengers at once, thereby reducing the production of dangerous pollutants many times over. Of course, they can still use their cars if necessary, for example, when traveling to distant locations or areas that are not accessible by public transportation. However, if they are just going someplace nearby, they can choose to walk or use public transportation."
+  ], src: "Adapted from EduBirdie (2022), edubirdie.com/examples/advantages-and-disadvantages-of-cars/" }
+};
+
+/* ---------- Questions ---------- */
+const CMC = "Complex Multiple Choice";
+const SL = [
+  { type: "cover" },
+  { type: "text", text: "t1" },
+  { type: "q", kind: "mc", key: "q1", label: "1", section: CMC, text: "t1",
+    prompt: "Pesticides are used in agriculture for …",
+    options: ["providing nutrients for plants to grow.", "controlling destructive insects or animals that attack crops.", "attracting insects and animals.", "increasing soil fertility.", "protecting farmers from pest attack."],
+    answer: [1],
+    hint: "Paragraph 2 starts by saying what pesticides are. What do they control?",
+    explain: "Pesticides are chemicals used to control pests (paragraph 2). They protect crops from pests that attack them." },
+  { type: "q", kind: "mc", key: "q2", label: "2", section: CMC, text: "t1",
+    prompt: "The short-term impact of pesticide use is …",
+    options: ["improving cancer risk for humans.", "increasing the cost of harvesting.", "reducing soil fertility.", "contaminating the environment.", "improving crop quality."],
+    answer: [4],
+    hint: "Short-term effects are the benefits. Check the primary benefits in paragraph 2.",
+    explain: "The main (primary) benefits are better quality of crops and animals and higher yields. The other options are long-term harms." },
+  { type: "q", kind: "mc", key: "q3", label: "3", section: CMC, text: "t1",
+    prompt: "The use of pesticides should be controlled because …",
+    options: ["it will affect the quality of crops.", "the use of pesticides results in high costs.", "it can be toxic for humans who consume the plants with pesticides.", "it reduces crop waste.", "it controls the pest attacks on plants."],
+    answer: [2],
+    hint: "Look for a risk to people, not a benefit. Paragraph 3 lists the downsides.",
+    explain: "Paragraph 3 and the conclusion say pesticides are a threat to human health. Options D and E are benefits, so they are not reasons to control pesticides." },
+  { type: "q", kind: "mc", key: "q4", label: "4", section: CMC, text: "t1",
+    prompt: "Who has the most risk of cancer caused by the usage of pesticides?",
+    options: ["Farmers", "Parents", "Children", "Animals", "All living things"],
+    answer: [2],
+    hint: "Find the phrase “a higher risk of cancer—especially among …” in paragraph 3.",
+    explain: "The text says the risk is higher “especially among children and agricultural workers”. Children come first in the sentence." },
+  { type: "q", kind: "mc", key: "q5", label: "5", section: CMC, text: "t1",
+    prompt: "Which of the following best explains why the long-term effects of pesticides may outweigh their short-term benefits?",
+    options: ["Pesticides are only effective for a limited number of crops.", "They cost more to produce than the crops they protect.", "Their long-term health and environmental impacts can be severe and irreversible.", "Farmers do not use pesticides correctly, leading to crop failure.", "Pesticides can be replaced easily by traditional farming methods."],
+    answer: [2],
+    hint: "Read the conclusion. Which option matches “serious long-term threats to health and nature”?",
+    explain: "The conclusion says pesticides pose serious long-term threats to health and nature. The text does not support the other options." },
+  { type: "q", kind: "tf", key: "q6", label: "6", section: CMC, text: "t1",
+    prompt: "Based on the text, are these statements true or false?",
+    items: [
+      { t: "The use of pesticides should be banned because it harms the environment.", a: false, why: "The text shows both sides and suggests safer pesticides. It never says pesticides should be banned." },
+      { t: "Pesticides can be beneficial to increase crop and livestock yields.", a: true, why: "Primary benefits: better quality of crops and animals and increased yields." },
+      { t: "Indirectly, the use of pesticide can reduce the fertility of soil.", a: true, why: "Pesticides kill beneficial microorganisms, which harms soil fertility." },
+      { t: "Farmers must spend more money if they use pesticides for their plants.", a: false, why: "About 160 trillion rupiah spent on pesticides protects over 600 trillion rupiah worth of crops. Pesticides reduce costs." }
+    ],
+    hint: "Find the sentence in the text that matches each statement." },
+  { type: "q", kind: "mc", multi: true, key: "q7", label: "7", section: CMC, text: "t1",
+    prompt: "Which of the following are the long-term effects of pesticides?",
+    options: ["Causing immunotoxicity in humans.", "Reducing waste of crops, land, water, time, and other valuable resources.", "Contaminating groundwater.", "Controlling pests.", "Causing cancer to humans.", "Causing allergies."],
+    answer: [0, 2, 4, 5],
+    hint: "Long-term effects are harms. Two options are benefits.",
+    explain: "B and D are benefits of pesticides. A, C, E and F are harms listed in paragraph 3." },
+  { type: "text", text: "t2" },
+  { type: "q", kind: "tf", key: "q8", label: "8", section: CMC, text: "t2",
+    prompt: "Based on the dialog, are these statements true or false?",
+    items: [
+      { t: "John and Willy's school published a journal which discussed about the environment.", a: true, why: "John: “Have you read the journal in our school about the environment?”" },
+      { t: "A shortage of drinking water is caused by droughts.", a: false, why: "John says we will face a shortage because of wasting and polluting water. Droughts are not mentioned." },
+      { t: "Electric vehicles are a new innovation to save more energy and money.", a: false, why: "Willy says electric vehicles with renewable energy help reduce carbon dioxide. Saving energy and money is not mentioned." },
+      { t: "Plastic wastes have a big impact on the existence of animals.", a: true, why: "Willy: plastic is “a huge threat to sea life”." }
+    ],
+    hint: "Find the line in the dialog that talks about each topic." },
+  { type: "q", kind: "mc", multi: true, key: "q9", label: "9", section: CMC, text: "t2",
+    prompt: "What environmental problems are mentioned in the dialog?",
+    options: ["School waste", "Shortage of drinking water", "Air pollution", "Animal extinction", "Ice melting", "High electricity consumption", "Plastic waste"],
+    answer: [1, 2, 3, 6],
+    hint: "There are four problems. Each one is mentioned by John or Willy.",
+    explain: "John: shortage of drinking water. Willy: air pollution, animals becoming extinct, and plastic. School waste, ice melting and electricity consumption are not mentioned." },
+  { type: "q", kind: "mc", multi: true, key: "q10", label: "10", section: CMC, text: "t2",
+    prompt: "What solutions to environmental problems do the two boys discuss?",
+    options: ["Walking to the school and the office.", "Reducing the usage of products that produce carbon dioxide.", "Recycling plastic wastes.", "Not using plastic products.", "Planting green plants around our houses.", "Not using water too much if it is not needed.", "Keeping extinct animals at our homes."],
+    answer: [1, 3, 5],
+    hint: "Three solutions. Look for “stop”, “reduce” and “need to” in the dialog.",
+    explain: "Willy: reduce things that produce carbon dioxide, and stop using plastic. John: stop wasting water. Recycling is not mentioned." },
+  { type: "q", kind: "match", key: "q11", label: "11", section: "Matching",
+    prompt: "Match the connectives to the sentence where each can be used.",
+    left: ["however", "on the other hand", "in contrast", "therefore", "furthermore"],
+    right: [
+      "Junk food contains many calories and additives. … , people love it because it is easy to get.",
+      "Vegetables and fruits contain vitamins and minerals which are good for health. … , there are various vegetables and fruits that we can consume.",
+      "The advertisement mentioned that the product can provide weight gain. … , the sale is still low.",
+      "Pollution makes global warming get worse. … , we should stop polluting the environment.",
+      "… with your belief that we will fail, I am confident that we will succeed."
+    ],
+    answer: [2, 0, 4, 3, 1],
+    hint: "“therefore” shows a result, “furthermore” adds one more point, and “in contrast with” is followed by a noun phrase.",
+    explain: "(d) Pollution is bad, so the result is “therefore”. (b) adds another point, so “furthermore”. (e) “in contrast with your belief”. (a) and (c) both show contrast: “on the other hand” and “however”." },
+  { type: "q", kind: "match", key: "q12", label: "12", section: "Matching",
+    prompt: "Match the thinking verbs to the sentence where each can be used.",
+    left: ["consider", "imagine", "notice", "realize", "suppose", "believe", "know"],
+    right: [
+      "She won't … anything but what relates to herself.",
+      "It's reasonable to … that people go into this business in search of fame.",
+      "Some … the government will immediately take action to solve the problem.",
+      "Some people just don't … how much their words can hurt someone.",
+      "Before we take that further, let's … something the Internet has taught us about ourselves.",
+      "The most difficult thing in life is to … who we are.",
+      "Can you … that the earth might be totally different 50 years from now?"
+    ],
+    answer: [4, 6, 0, 3, 1, 2, 5],
+    hint: "Start with the easy ones: “Can you … that the earth might be different” needs imagine, and “to … who we are” needs know.",
+    explain: "consider → (e), imagine → (g), notice → (a), realize → (d), suppose → (b), believe → (c), know → (f)." },
+  { type: "q", kind: "fill", key: "q13", label: "13–18", section: "Essay",
+    prompt: "Complete the sentences with expressions of preference.",
+    items: [
+      { n: 13, seg: ["I ", 0, " eating veggies salad ", 0, " beef steak."], ok: [["prefer", "to"], ["like", "better than"]] },
+      { n: 14, seg: ["Teenagers ", 0, " spend time in a cafe ", 0, " out in nature."], ok: [["would rather", "than"], ["prefer to", "rather than"]] },
+      { n: 15, lead: "A: Should I pick you up at 3 tomorrow?", seg: ["B: I ", 0, " being picked up at 5, so I have time to clean up my house."], ok: [["prefer"], ["like"]] },
+      { n: 16, seg: ["Both are interesting to visit, but I ", 0, " visit Malang ", 0, " Bandung because I've always wanted to visit it."], ok: [["would rather", "than"], ["prefer to", "rather than"]] },
+      { n: 17, seg: ["My sister ", 0, " working after high school ", 0, " continuing her studies."], ok: [["prefers", "to"], ["likes", "better than"]] },
+      { n: 18, seg: ["My best friend ", 0, " chat online ", 0, " talk on the phone."], ok: [["would rather", "than"], ["prefers to", "rather than"]] }
+    ],
+    hint: "Patterns: prefer + -ing + to + -ing. would rather + verb + than + verb. prefer to + verb + rather than + verb.",
+    explain: "Other correct expressions are accepted, such as “like … better than”." },
+  { type: "text", text: "t3" },
+  { type: "q", kind: "open", selfcheck: true, key: "q19", label: "19", section: "Essay", text: "t3",
+    prompt: "What is the writer's purpose in writing the text?",
+    model: "To discuss the advantages and disadvantages of driving private cars, and to persuade readers to use public transportation when they can.",
+    hint: "Read the last sentence of paragraph 1 and the conclusion." },
+  { type: "q", kind: "open", selfcheck: true, key: "q20", label: "20", section: "Essay", text: "t3",
+    prompt: "Why does the writer think that driving cars gives benefits to people?",
+    model: "Because cars are comfortable. Owners can use their time efficiently and flexibly, do not follow a transportation schedule, do not need to travel to a station or bus stop, and feel less stress. Private cars are also friendlier to the elderly.",
+    hint: "Paragraph 2 starts with “The first reason …”." },
+  { type: "q", kind: "open", selfcheck: true, key: "q21", label: "21", section: "Essay", text: "t3",
+    prompt: "Based on the writer's explanation, what makes cars contribute to environmental pollution?",
+    model: "Most cars still use gasoline, and its combustion produces dangerous pollutants that destroy the ozone. Almost every household has at least one car, so billions of cars cross the roads.",
+    hint: "Paragraph 3. Look for the word “gasoline”." },
+  { type: "q", kind: "open", selfcheck: true, key: "q22", label: "22", section: "Essay", text: "t3",
+    prompt: "What does the writer suggest to the readers?",
+    model: "Use public transportation even if they have a private car. Use the car only when necessary, such as for distant places that public transportation cannot reach, and walk or take public transportation for nearby trips.",
+    hint: "The suggestion is in the conclusion." },
+  { type: "q", kind: "open", key: "q23", label: "23", section: "Essay", text: "t3",
+    prompt: "What is your opinion about the use of cars in big cities nowadays?",
+    model: "In my opinion, using private cars in big cities should be reduced because they cause traffic jams and air pollution. Public transportation is a better choice for daily trips.",
+    hint: "Start with “In my opinion, …” and give one reason." },
+  { type: "q", kind: "open", key: "q24", label: "24", section: "Essay", text: "t3",
+    prompt: "In the future, if you have your own car, which one would you prefer, driving your private car or taking public transportation? Give your reason(s).",
+    model: "I would rather take public transportation than drive my own car because it is cheaper, it reduces pollution, and I can avoid the stress of traffic jams.",
+    hint: "Use an expression of preference: “I would rather … than …”." },
+  { type: "q", kind: "open", key: "q25", label: "25", section: "Essay", text: "t3",
+    prompt: "In order to reduce the air pollution, what will you do?",
+    model: "I will walk or ride a bicycle for short trips, use public transportation, and plant trees around my house.",
+    hint: "Use “I will …” and name two actions." },
+  { type: "results" }
+];
+
+/* ---------- State ---------- */
+const S = { i: 0, ans: {}, done: {}, pts: {}, hint: {}, self: {}, name: "", cls: "", sub: { st: "idle" } };
+const profileOk = () => S.name.trim().length >= 2 && S.cls.trim().length >= 1;
+const QS = SL.filter(s => s.type === "q");
+const L = "ABCDEFG", l = "abcdefg";
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const norm = s => String(s || "").toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, " ").trim();
+const words = s => (String(s || "").trim().match(/\S+/g) || []).length;
+const find = k => QS.find(q => q.key === k);
+
+function maxPts(q) {
+  if (q.kind === "mc") return q.multi ? q.answer.length : 1;
+  if (q.kind === "tf" || q.kind === "fill") return q.items.length;
+  if (q.kind === "match") return q.left.length;
+  return 1;
+}
+const totalMax = QS.reduce((n, q) => n + maxPts(q), 0);
+const earned = () => QS.reduce((n, q) => n + (S.pts[q.key] || 0), 0);
+
+/* ---------- Grading ---------- */
+function fillOk(item, vals) {
+  return item.ok.some(combo => combo.every((c, i) => norm(vals[i]) === norm(c)));
+}
+function grade(q) {
+  const a = S.ans[q.key];
+  if (q.kind === "mc") {
+    const sel = a || [];
+    if (!q.multi) return sel[0] === q.answer[0] ? 1 : 0;
+    const right = sel.filter(i => q.answer.includes(i)).length;
+    return Math.max(0, right - (sel.length - right));
+  }
+  if (q.kind === "tf") return q.items.filter((it, i) => (a || {})[i] === it.a).length;
+  if (q.kind === "match") return q.answer.filter((v, i) => (a || {})[i] === v).length;
+  if (q.kind === "fill") return q.items.filter((it, i) => fillOk(it, (a || {})[i] || [])).length;
+  if (q.kind === "open") return q.selfcheck ? 0 : (words(a) >= 5 ? 1 : 0);
+  return 0;
+}
+function ready(q) {
+  const a = S.ans[q.key];
+  if (q.kind === "mc") return !!(a && a.length);
+  if (q.kind === "tf") return !!a && q.items.every((_, i) => typeof a[i] === "boolean");
+  if (q.kind === "match") return !!a && q.left.every((_, i) => typeof a[i] === "number");
+  if (q.kind === "fill") return !!a && q.items.every((it, i) => a[i] && it.ok[0].every((_, b) => norm(a[i][b])));
+  if (q.kind === "open") return words(a) >= (q.selfcheck ? 2 : 5);
+  return false;
+}
+
+/* ---------- Views ---------- */
+function head(q) {
+  return `<div class="qhead"><div class="qn">${esc(q.label)}</div><div><span class="tag">${esc(q.section)}</span><h2>${esc(q.prompt)}</h2>${q.multi ? `<p class="meta">Select all that apply.</p>` : ""}</div></div>`;
+}
+function toolbar(q) {
+  const done = S.done[q.key];
+  return `<div class="tools">
+    ${q.text ? `<button class="btn" data-act="text" data-t="${q.text}">Read the text</button>` : ""}
+    ${!done ? `<button class="btn warm" data-act="hint" data-k="${q.key}">${S.hint[q.key] ? "Hide hint" : "Hint"}</button>` : ""}
+  </div>${S.hint[q.key] && !done ? `<div class="hint"><b>Hint:</b> ${esc(q.hint)}</div>` : ""}`;
+}
+function mcView(q) {
+  const done = S.done[q.key], sel = S.ans[q.key] || [];
+  return `<div class="opts">${q.options.map((o, i) => {
+    const s = sel.includes(i), a = q.answer.includes(i);
+    let c = "opt", mk = "";
+    if (done) { if (a && s) { c += " ok"; mk = "✓ Correct"; } else if (s) { c += " bad"; mk = "✗ Wrong"; } else if (a) { c += " miss"; mk = "✓ Answer"; } }
+    else if (s) c += " on";
+    return `<button class="${c}" data-act="pick" data-k="${q.key}" data-i="${i}" aria-pressed="${s}" ${done ? "disabled" : ""}><span class="ltr">${L[i]}</span><span class="txt">${esc(o)}</span><span class="mk">${mk}</span></button>`;
+  }).join("")}</div>`;
+}
+function tfView(q) {
+  const done = S.done[q.key], a = S.ans[q.key] || {};
+  return `<div class="rows">${q.items.map((it, i) => {
+    const v = a[i], good = v === it.a;
+    const btn = (val, txt) => {
+      let c = "";
+      if (done) { if (it.a === val) c = "right"; else if (v === val) c = "wrong"; }
+      else if (v === val) c = "on";
+      return `<button class="${c}" data-act="tf" data-k="${q.key}" data-i="${i}" data-v="${val}" aria-pressed="${v === val}" ${done ? "disabled" : ""}>${txt}</button>`;
+    };
+    return `<div class="row ${done ? (good ? "ok" : "bad") : ""}"><div class="st"><b>${L[i]}.</b> ${esc(it.t)}</div><div class="seg">${btn(true, "True")}${btn(false, "False")}</div>${done ? `<div class="why">${good ? "✓" : "✗"} ${esc(it.why)}</div>` : ""}</div>`;
+  }).join("")}</div>`;
+}
+function matchView(q) {
+  const done = S.done[q.key], a = S.ans[q.key] || {};
+  const rows = q.left.map((w, i) => {
+    const v = a[i], good = v === q.answer[i];
+    const opts = `<option value="">–</option>` + q.right.map((_, j) => `<option value="${j}" ${v === j ? "selected" : ""}>${l[j]}</option>`).join("");
+    return `<div class="mrow ${done ? (good ? "ok" : "bad") : ""}"><span class="w">${i + 1}. ${esc(w)}</span><select data-act="match" data-k="${q.key}" data-i="${i}" aria-label="Sentence for ${esc(w)}" ${done ? "disabled" : ""}>${opts}</select>${done ? `<span class="res">${good ? "✓" : `✗ ${l[q.answer[i]]}`}</span>` : ""}</div>`;
+  }).join("");
+  const right = q.right.map((t, j) => `<li><b>(${l[j]})</b><span>${esc(t)}</span></li>`).join("");
+  return `<div class="match"><div>${rows}</div><ul class="choices">${right}</ul></div>`;
+}
+function fillView(q) {
+  const done = S.done[q.key], a = S.ans[q.key] || {};
+  return `<div class="fills">${q.items.map((it, i) => {
+    const vals = a[i] || [], good = done && fillOk(it, vals);
+    let b = -1;
+    const line = it.seg.map(p => {
+      if (typeof p === "string") return esc(p);
+      b++;
+      return `<input class="blank" data-act="fill" data-k="${q.key}" data-i="${i}" data-b="${b}" value="${esc(vals[b] || "")}" aria-label="Blank ${b + 1} in sentence ${it.n}" autocomplete="off" autocapitalize="off" spellcheck="false" ${done ? "disabled" : ""}>`;
+    }).join("");
+    const key = it.ok.map(c => c.join(" … ")).join("  /  ");
+    return `<div class="fi ${done ? (good ? "ok" : "bad") : ""}">${it.lead ? `<div class="lead"><span class="no">${it.n}.</span>${esc(it.lead)}</div>` : ""}<div class="ln">${it.lead ? "" : `<span class="no">${it.n}.</span>`}${line}</div>${done ? `<div class="ans">${good ? "✓" : "✗"} Answer: <b>${esc(key)}</b></div>` : ""}</div>`;
+  }).join("")}</div>`;
+}
+function openView(q) {
+  const done = S.done[q.key];
+  let h = `<textarea data-act="open" data-k="${q.key}" aria-label="Your answer" placeholder="Write your answer here…" ${done ? "disabled" : ""}>${esc(S.ans[q.key] || "")}</textarea>`;
+  if (done) {
+    h += `<div class="key"><h3>${q.selfcheck ? "Model answer" : "Sample answer"}</h3><p>${esc(q.model)}</p></div>`;
+    if (q.selfcheck) {
+      const v = S.self[q.key];
+      h += `<div class="self"><span>Does your answer match?</span>
+        <button class="btn ${v === 1 ? "solid" : ""}" data-act="self" data-k="${q.key}" data-v="1">Yes, +1</button>
+        <button class="btn ${v === 0 ? "solid" : ""}" data-act="self" data-k="${q.key}" data-v="0">Not yet</button></div>`;
+    }
+  }
+  return h;
+}
+function feedback(q) {
+  const p = S.pts[q.key] || 0, m = maxPts(q);
+  if (q.kind === "open") {
+    if (q.selfcheck) return "";
+    return `<div class="fb ok">Nice work, +1. There is no single right answer, so compare yours with the sample.</div>`;
+  }
+  const cls = p === m ? "ok" : p === 0 ? "bad" : "part";
+  const msg = p === m ? "Correct!" : p === 0 ? "Not quite." : "Almost there.";
+  return `<div class="fb ${cls}">${msg} ${p} / ${m}</div>`;
+}
+function keyBox(q) {
+  if (q.kind === "open" || !q.explain) return "";
+  return `<div class="key"><h3>Why</h3><p>${esc(q.explain)}</p></div>`;
+}
+function qView(q) {
+  const done = S.done[q.key];
+  const body = { mc: mcView, tf: tfView, match: matchView, fill: fillView, open: openView }[q.kind](q);
+  const check = !done
+    ? `<div class="tools"><button class="btn solid" id="check" data-act="check" data-k="${q.key}" ${ready(q) ? "" : "disabled"}>Check answer</button></div>` : "";
+  return `<section class="card">${head(q)}${toolbar(q)}${body}${check}${done ? feedback(q) + keyBox(q) : ""}</section>`;
+}
+function textView(t) {
+  const T = TEXTS[t];
+  const body = T.dialog
+    ? `<p>${esc(T.intro)}</p><div class="dl">${T.dialog.map(d => `<div><b>${d[0]}</b><span>${esc(d[1])}</span></div>`).join("")}</div>`
+    : T.paras.map(p => `<p>${esc(p)}</p>`).join("");
+  return `<span class="tag">${T.dialog ? "Dialog" : "Text"}</span><h2>${esc(T.title)}</h2>${body}<p class="src">${esc(T.src)}</p>`;
+}
+function coverView() {
+  return `<section class="card cover">
+    <div class="big"><h1>Evaluation</h1><span class="five">5</span></div>
+    <p><b>Unit 5 Environment</b> · Step Up 3</p>
+    <div class="facts"><span>25 questions</span><span>100 points</span><span>3 texts</span></div>
+    <div class="who">
+      <label for="sname">Name<input id="sname" data-act="name" value="${esc(S.name)}" autocomplete="name" maxlength="60"></label>
+      <label for="scls">Class<input id="scls" data-act="cls" list="classes" value="${esc(S.cls)}" maxlength="30"><datalist id="classes"><option value="XII Afifah"><option value="XII Nafiah"></datalist></label>
+    </div>
+    <p class="gate" id="gate" role="alert" hidden>Enter your name and class first.</p>
+    <div class="tools"><button class="btn solid" data-act="next">Start</button></div>
+  </section>`;
+}
+function resultText(e, n) {
+  return `${S.name} | ${S.cls} | Evaluation 5 | Score ${scaled(e)}/100 | ${n}/${QS.length} slides checked`;
+}
+function subView(e, n) {
+  const st = S.sub.st;
+  const when = new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const who = `<p><b>${esc(S.name)}</b> · ${esc(S.cls)} · ${esc(when)}</p>`;
+  if (st === "ok") return `<div class="sub ok">${who}<p>✓ Score submitted: <b>${scaled(S.sub.score)} / 100</b>. Your teacher can see it.</p><button class="btn" data-act="submit">Submit again</button></div>`;
+  const can = !!SCORE_URL;
+  let h = `<div class="sub ${st === "err" ? "err" : ""}">${who}`;
+  if (st === "err") h += `<p>${esc(S.sub.msg)}</p>`;
+  else if (!can) h += `<p>Send your result to your teacher.</p>`;
+  else h += `<p>Finished? Send your score to your teacher.</p>`;
+  if (can) h += `<button class="btn solid" data-act="submit" ${st === "sending" ? "disabled" : ""}>${st === "sending" ? "Sending…" : "Submit score"}</button> `;
+  const mail = `mailto:${TEACHER_EMAIL}?subject=${encodeURIComponent("Evaluation 5 - " + S.name + " - " + S.cls)}&body=${encodeURIComponent(resultText(e, n))}`;
+  h += `<a class="btn solid" href="${mail}" style="display:inline-block;text-decoration:none;line-height:1.7">Send by email</a> <button class="btn" data-act="copyres">Copy result</button> <span id="copied" class="meta"></span></div>`;
+  return h;
+}
+function resultsView() {
+  const e = earned(), n = Object.keys(S.done).length;
+  const pct = Math.round(e / totalMax * 100);
+  const msg = n < QS.length ? `${QS.length - n} question slide${QS.length - n > 1 ? "s" : ""} still unchecked.` : pct >= 80 ? "Excellent work!" : pct >= 60 ? "Good job. Review the red ones." : "Keep practicing. Reread the texts and try again.";
+  const pills = QS.map(q => {
+    const p = S.pts[q.key] || 0, m = maxPts(q);
+    const c = !S.done[q.key] ? "" : p === m ? "ok" : p === 0 ? "bad" : "part";
+    return `<button class="pill ${c}" data-act="goq" data-k="${q.key}" aria-label="Question ${q.label}">${q.label}</button>`;
+  }).join("");
+  return `<section class="card"><span class="tag">Results</span><div class="big-score">${scaled(e)} / 100</div><p>${msg}</p>
+    <div class="pills">${pills}</div>
+    <div class="legend"><span>Green: all correct</span><span>Yellow: partly correct</span><span>Red: not correct</span></div>
+    ${subView(e, n)}
+    <div class="tools"><button class="btn" data-act="restart">Try again</button></div></section>`;
+}
+
+/* ---------- Render ---------- */
+function render(keepScroll) {
+  const s = SL[S.i];
+  let h = "";
+  if (s.type === "cover") h = coverView();
+  else if (s.type === "text") h = `<section class="card text">${textView(s.text)}</section>`;
+  else if (s.type === "q") h = qView(s);
+  else h = resultsView();
+  $("main").innerHTML = h;
+  $("prog").style.width = (S.i / (SL.length - 1) * 100) + "%";
+  $("count").textContent = `${S.i + 1} / ${SL.length}`;
+  $("prev").disabled = S.i === 0;
+  $("next").disabled = S.i === SL.length - 1;
+  updateScore();
+  if (!keepScroll) window.scrollTo(0, 0);
+}
+const scaled = e => Math.round(e / totalMax * 100);
+function updateScore() { $("score").textContent = `${scaled(earned())} / 100`; }
+function refreshCheck() {
+  const b = $("check"); if (!b) return;
+  b.disabled = !ready(find(b.dataset.k));
+}
+function go(i) {
+  if (SL[S.i].type === "cover" && i > S.i && !profileOk()) { const g = $("gate"); if (g) g.hidden = false; const f = $(S.name.trim().length < 2 ? "sname" : "scls"); if (f) f.focus(); return; }
+  S.i = Math.max(0, Math.min(SL.length - 1, i)); render(); }
+
+/* ---------- Events ---------- */
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-act]"); if (!t) return;
+  const act = t.dataset.act, k = t.dataset.k, q = k ? find(k) : null;
+  if (act === "next") go(S.i + 1);
+  else if (act === "submit") submitScore();
+  else if (act === "copyres") copyResult();
+
+  else if (act === "prev") go(S.i - 1);
+  else if (act === "restart") { S.ans = {}; S.done = {}; S.pts = {}; S.hint = {}; S.self = {}; S.sub = { st: "idle" }; go(0); }
+  else if (act === "goq") go(SL.indexOf(q));
+  else if (act === "hint") { S.hint[k] = !S.hint[k]; render(true); }
+  else if (act === "text") openSheet(t.dataset.t);
+  else if (act === "close") closeSheet();
+  else if (act === "pick" && !S.done[k]) {
+    const i = +t.dataset.i, cur = S.ans[k] || [];
+    S.ans[k] = q.multi ? (cur.includes(i) ? cur.filter(x => x !== i) : [...cur, i].sort((a, b) => a - b)) : [i];
+    render(true);
+  }
+  else if (act === "tf" && !S.done[k]) {
+    S.ans[k] = S.ans[k] || {}; S.ans[k][+t.dataset.i] = t.dataset.v === "true"; render(true);
+  }
+  else if (act === "check") {
+    if (!ready(q)) return;
+    S.done[k] = true; S.pts[k] = grade(q); render(true);
+    const fb = document.querySelector(".fb, .self"); if (fb) fb.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+  else if (act === "self") { S.self[k] = +t.dataset.v; S.pts[k] = +t.dataset.v; render(true); }
+});
+document.addEventListener("input", e => {
+  const t = e.target, act = t.dataset && t.dataset.act, k = t.dataset && t.dataset.k;
+  if (act === "name") { S.name = t.value; return; }
+  if (act === "cls") { S.cls = t.value; return; }
+  if (act === "fill") {
+    const i = +t.dataset.i, b = +t.dataset.b;
+    S.ans[k] = S.ans[k] || {}; S.ans[k][i] = S.ans[k][i] || []; S.ans[k][i][b] = t.value; refreshCheck();
+  } else if (act === "open") { S.ans[k] = t.value; refreshCheck(); }
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.dataset && t.dataset.act === "match") {
+    const k = t.dataset.k; S.ans[k] = S.ans[k] || {};
+    if (t.value === "") delete S.ans[k][+t.dataset.i]; else S.ans[k][+t.dataset.i] = +t.value;
+    refreshCheck();
+  }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !$("sheet").hidden) { closeSheet(); return; }
+  if (!$("sheet").hidden) return;
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (["input", "textarea", "select"].includes(tag)) return;
+  if (e.key === "ArrowRight") go(S.i + 1);
+  if (e.key === "ArrowLeft") go(S.i - 1);
+});
+$("sheet").addEventListener("click", e => { if (e.target === $("sheet")) closeSheet(); });
+
+let lastFocus = null;
+function openSheet(t) {
+  lastFocus = document.activeElement;
+  $("sheet-in").innerHTML = `<div class="sheet-head"><span class="tag">Reading</span><button class="btn" data-act="close" id="sheet-close">Close</button></div><div class="text">${textView(t)}</div>`;
+  $("sheet").hidden = false;
+  $("sheet-close").focus();
+}
+function closeSheet() { $("sheet").hidden = true; if (lastFocus) lastFocus.focus(); }
+
+/* ---------- Submit score ---------- */
+/* Paste your Google Apps Script web app URL here (see README). Leave empty to show only "Copy result". */
+const SCORE_URL = "";
+/* Teacher email that receives the result. Put the address between the quotes. If empty, the student types the address. */
+const TEACHER_EMAIL = "";
+async function submitScore() {
+  if (!SCORE_URL || S.sub.st === "sending") return;
+  const e = earned(), n = Object.keys(S.done).length;
+  S.sub = { st: "sending" }; render(true);
+  try {
+    await fetch(SCORE_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ name: S.name.trim(), cls: S.cls.trim(), score: scaled(e), checked: n, total: QS.length }) });
+    S.sub = { st: "ok", score: e };
+  } catch (err) {
+    S.sub = { st: "err", msg: "Could not send the score. Check your connection and try again, or copy your result below." };
+  }
+  render(true);
+}
+function copyResult() {
+  const txt = resultText(earned(), Object.keys(S.done).length);
+  const done = ok => { const c = $("copied"); if (c) c.textContent = ok ? "Copied" : "Select and copy: " + txt; };
+  try { navigator.clipboard.writeText(txt).then(() => done(true), () => done(false)); } catch (e) { done(false); }
+}
+
+render();
+</script>
+
+</body>
+</html>
